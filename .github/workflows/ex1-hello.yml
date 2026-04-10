@@ -1,0 +1,31 @@
+# ============================================================
+# EXERCISE 1: Hello World Pipeline
+# Focus: Basic workflow, triggers, steps
+# ============================================================
+name: Ex1 - Hello World CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print Hello
+        run: echo "Hello, DevOps!"
+
+      - name: Print environment info
+        run: |
+          echo "Today is $(date)"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Git Ref: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+
+      - name: List files
+        run: ls -la

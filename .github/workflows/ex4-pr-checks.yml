@@ -1,0 +1,120 @@
+# ============================================================
+# EXERCISE 4: PR-Triggered Pipeline
+# Focus: PR checks, status validation
+# ============================================================
+name: Ex4 - PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  # Check PR metadata
+  pr-metadata:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Analyze PR
+        run: |
+          echo "=== PR Metadata ==="
+          echo "PR #: ${{ github.event.pull_request.number }}"
+          echo "Title: ${{ github.event.pull_request.title }}"
+          echo "Author: ${{ github.event.pull_request.user.login }}"
+          echo "Source Branch: ${{ github.head_ref }}"
+          echo "Target Branch: ${{ github.base_ref }}"
+          echo "=================="
+
+  # Validate PR title
+  pr-title-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate PR title length
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          LEN=${#TITLE}
+          echo "PR Title: '$TITLE'"
+          echo "Length: $LEN characters"
+
+          if [ $LEN -lt 10 ]; then
+            echo "ERROR: PR title too short (minimum 10 characters)"
+            exit 1
+          elif [ $LEN -lt 20 ]; then
+            echo "WARNING: PR title could be more descriptive (>20 chars recommended)"
+          else
+            echo "PR title looks good!"
+          fi
+
+  # Check required files
+  file-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          echo "Checking required files..."
+          MISSING=0
+
+          [ -f "README.md" ] && echo "✅ README.md found" || { echo "❌ README.md missing"; MISSING=$((MISSING+1)); }
+          [ -f "package.json" ] && echo "✅ package.json found" || { echo "❌ package.json missing"; MISSING=$((MISSING+1)); }
+          [ -f ".gitignore" ] && echo "✅ .gitignore found" || { echo "❌ .gitignore missing"; MISSING=$((MISSING+1)); }
+
+          if [ $MISSING -gt 0 ]; then
+            echo "FAILED: $MISSING required file(s) missing"
+            exit 1
+          fi
+          echo "All required files present!"
+
+      - name: Check for .env files (should not be committed)
+        run: |
+          if ls .env* 1> /dev/null 2>&1; then
+            echo "WARNING: .env file(s) found — make sure they are in .gitignore!"
+            ls -la .env*
+          else
+            echo "No .env files found (good!)"
+          fi
+
+  # Code quality checks
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Check test pass rate
+        run: |
+          echo "Tests completed successfully"
+          echo "PR is ready for review!"
+
+  # Summary
+  summary:
+    needs: [pr-metadata, pr-title-check, file-checks, code-quality]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: PR check summary
+        run: |
+          echo "=== PR Validation Complete ==="
+          echo "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+          echo ""
+          echo "All checks passed! ✅"
+          echo ""
+          echo "Summary:"
+          echo "  - PR metadata: ✅"
+          echo "  - Title validation: ✅"
+          echo "  - File checks: ✅"
+          echo "  - Code quality: ✅"

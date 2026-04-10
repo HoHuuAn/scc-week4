@@ -1,0 +1,88 @@
+# ============================================================
+# EXERCISE 3: Multi-Job Pipeline with Artifacts
+# Focus: Jobs, dependencies, artifacts
+# ============================================================
+name: Ex3 - Multi-Job 
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # Job 1: Build the app
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.tag }}
+      build_time: ${{ steps.version.outputs.build_time }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate build metadata
+        id: version
+        run: |
+          TAG="v1.0.0-$(date +%Y%m%d%H%M%S)"
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+          echo "Generated version: $TAG"
+
+      - name: Create build artifact
+        run: |
+          echo "=== Build Report ===" > build.txt
+          echo "Version: ${{ steps.version.outputs.tag }}" >> build.txt
+          echo "Build Time: ${{ steps.version.outputs.build_time }}" >> build.txt
+          echo "Commit: ${{ github.sha }}" >> build.txt
+          echo "Author: ${{ github.actor }}" >> build.txt
+          echo "=====================" >> build.txt
+
+          # Simulate app build (in real scenario: compile/bundle here)
+          echo "App built successfully!" >> build.txt
+          echo "Files created: app.js" >> build.txt
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: build.txt
+          retention-days: 7
+
+  # Job 2: Run tests (parallel with build)
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+  # Job 3: Security scan (parallel with build & test)
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        run: |
+          echo "Running secret scan..."
+          if grep -r "password\|secret\|api_key" --include="*.js" .; then
+            echo "WARNING: Potential secrets found!"
+          else
+            echo "No obvious secrets detected."
+          fi
+
+      - name: Check file structure
+        run: |
+          echo "Checking project structure..."
+          echo "Files:"
+          find . -type f -name "*.js" | head -20
+

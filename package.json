@@ -1,0 +1,13 @@
+{
+  "name": "week4-nodejs-app",
+  "version": "1.0.0",
+  "description": "Week 4 CI/CD Hands-on Practice",
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint app.js"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.57.0"
+  }
+}
