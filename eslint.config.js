@@ -1,15 +1,30 @@
-module.exports = {
-  env: {
-    node: true,
-    es2021: true,
-    jest: true,
+const globals = require('globals');
+const jest = require('jest');
+
+module.exports = [
+  {
+    ignores: ['node_modules/**', '*.test.js'],
   },
-  extends: 'eslint:recommended',
-  parserOptions: {
-    ecmaVersion: 12,
+  {
+    files: ['**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+        ...globals.es2021,
+        describe: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        it: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        jest: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'warn',
+      'no-console': 'off',
+    },
   },
-  rules: {
-    'no-unused-vars': 'warn',
-    'no-console': 'off',
-  },
-};
+];
