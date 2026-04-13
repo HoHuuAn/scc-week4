@@ -13,12 +13,13 @@ on:
 jobs:
   # Run tests across multiple Node versions
   test-node:
+    name: Test on Node.js ${{ matrix.node-version }} / ${{ matrix.os }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false  
       matrix:
         node-version: [18.x, 20.x, 22.x]
-        # os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
